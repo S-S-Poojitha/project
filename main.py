@@ -1,71 +1,72 @@
 import streamlit as st
 from PIL import Image
 import numpy as np
-import tensorflow as tf
+from colorthief import ColorThief
 from sklearn.metrics.pairwise import cosine_similarity
-import matplotlib.pyplot as plt
+import os
+import glob
 
-# Load CIFAR-10 dataset and select the first 200 images
-def load_cifar10_dataset(num_images=200):
-    (train_images, _), (_, _) = tf.keras.datasets.cifar10.load_data()
-    return train_images[:num_images]
+# Extract dominant color from an image
+def extract_dominant_color(image_path):
+    try:
+        color_thief = ColorThief(image_path)
+        dominant_color = color_thief.get_color(quality=1)
+        return np.array(dominant_color)
+    except Exception as e:
+        print(f"Error extracting color from {image_path}: {e}")
+        return np.array([0, 0, 0])  # Default to black if there's an error
 
-# Load a pre-trained model for feature extraction
-model = tf.keras.applications.ResNet50(weights='imagenet', include_top=False, pooling='avg')
+# Load dataset and extract color features
+def load_dataset_and_extract_colors(dataset_path):
+    image_paths = glob.glob(os.path.join(dataset_path, '**', '*.jpg'), recursive=True) + \
+                  glob.glob(os.path.join(dataset_path, '**', '*.png'), recursive=True)
+    color_features = []
+    for image_path in image_paths:
+        color = extract_dominant_color(image_path)
+        if color is not None:
+            color_features.append((image_path, color))
+            #print(f"Image: {image_path}, Dominant Color: {color}")  # Debug statement
+        else:
+            print(f"Skipping image {image_path} due to color extraction error")
+    return color_features
 
-# Preprocess the image
-def preprocess_image(image):
-    image = image.resize((224, 224))
-    image_array = np.array(image)
-    image_array = np.expand_dims(image_array, axis=0)
-    image_array = tf.keras.applications.resnet50.preprocess_input(image_array)
-    return image_array
+# Define dataset path
+dataset_path = 'fashion_dataset'  # Use the path where you downloaded images
+dataset_images = load_dataset_and_extract_colors(dataset_path)
 
-# Extract features from an image
-def get_features(image_array):
-    features = model.predict(image_array)
-    return features.flatten()
-
-# Convert CIFAR-10 images to features
-def convert_cifar10_to_features(images):
-    features_list = []
-    for img in images:
-        img = Image.fromarray(img)
-        img_array = preprocess_image(img)
-        features = get_features(img_array)
-        features_list.append(features)
-    return features_list
-
-# Load CIFAR-10 images and compute features
-cifar10_images = load_cifar10_dataset()
-cifar10_features = convert_cifar10_to_features(cifar10_images)
-
-# Function to find similar images
-def find_similar_images(uploaded_image_features, dataset_features, top_n=5):
+# Function to find similar images based on color
+def find_similar_images(uploaded_image_color, dataset_images, top_n=5):
     similarities = []
-    for features in dataset_features:
-        similarity = cosine_similarity([uploaded_image_features], [features])[0][0]
-        similarities.append(similarity)
-    indices = np.argsort(similarities)[::-1][:top_n]
-    return indices
+    for image_path, color in dataset_images:
+        similarity = cosine_similarity([uploaded_image_color], [color])[0][0]
+        similarities.append((image_path, similarity))
+        print(f"Comparing with {image_path}, Similarity: {similarity}")  # Debug statement
+    similarities.sort(key=lambda x: x[1], reverse=True)
+    return similarities[:top_n]
 
 # Streamlit application
-st.title('CIFAR-10 Image Search')
+st.title('Fashion Image Search by Color')
 
-st.write("Upload an image to find similar images from the CIFAR-10 dataset.")
+st.write("Upload an image to find similar images based on color from the dataset.")
 
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
+    uploaded_image_path = "uploaded_image.jpg"
     uploaded_image = Image.open(uploaded_file).convert('RGB')
+    uploaded_image.save(uploaded_image_path)
     st.image(uploaded_image, caption='Uploaded Image', use_column_width=True)
 
-    uploaded_image_array = preprocess_image(uploaded_image)
-    uploaded_image_features = get_features(uploaded_image_array)
+    # Extract the dominant color of the uploaded image
+    uploaded_image_color = extract_dominant_color(uploaded_image_path)
+    st.write(f"Uploaded Image Color: {uploaded_image_color}")
 
-    similar_indices = find_similar_images(uploaded_image_features, cifar10_features)
-
-    st.write("Similar Images:")
-    for idx in similar_indices:
-        similar_image = cifar10_images[idx]
-        st.image(similar_image, caption=f"Similar Image {idx}", use_column_width=True)
+    # Find similar images
+    similar_images = find_similar_images(uploaded_image_color, dataset_images)
+    
+    if similar_images:
+        st.write("Similar Images:")
+        for image_path, similarity in similar_images:
+            st.image(image_path, caption=f"{os.path.basename(image_path)} (Similarity: {similarity:.2f})", use_column_width=True)
+    else:
+        st.write("No similar images found.")
