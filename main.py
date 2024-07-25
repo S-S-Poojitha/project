@@ -45,7 +45,7 @@ def find_similar_images(uploaded_image_color, dataset_images, top_n=3):
     return similarities[:top_n]
 
 # Streamlit application
-st.title('Fashion Image Search by Color')
+st.title('Product image search')
 
 st.write("Upload an image to find similar images based on color from the dataset.")
 
