@@ -18,14 +18,14 @@ def extract_dominant_color(image_path):
 
 # Load dataset and extract color features
 def load_dataset_and_extract_colors(dataset_path):
-    image_paths = glob.glob(os.path.join(dataset_path, '**', '*.jpg'), recursive=True) + \
-                  glob.glob(os.path.join(dataset_path, '**', '*.png'), recursive=True)
+    image_paths = glob.glob(os.path.join(dataset_path, '*.jpg')) + \
+                  glob.glob(os.path.join(dataset_path, '*.jpeg'))
     color_features = []
     for image_path in image_paths:
         color = extract_dominant_color(image_path)
         if color is not None:
             color_features.append((image_path, color))
-            #print(f"Image: {image_path}, Dominant Color: {color}")  # Debug statement
+            print(f"Image: {image_path}, Dominant Color: {color}")  # Debug statement
         else:
             print(f"Skipping image {image_path} due to color extraction error")
     return color_features
@@ -35,7 +35,7 @@ dataset_path = 'fashion_dataset'  # Use the path where you downloaded images
 dataset_images = load_dataset_and_extract_colors(dataset_path)
 
 # Function to find similar images based on color
-def find_similar_images(uploaded_image_color, dataset_images, top_n=5):
+def find_similar_images(uploaded_image_color, dataset_images, top_n=3):
     similarities = []
     for image_path, color in dataset_images:
         similarity = cosine_similarity([uploaded_image_color], [color])[0][0]
