@@ -1,0 +1,5 @@
+streamlit==1.11.1
+Pillow==9.1.1
+numpy==1.21.6
+colorthief==0.2.1
+scikit-learn==1.0.2
