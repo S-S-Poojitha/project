@@ -20,7 +20,7 @@ def extract_dominant_color(image_path, quality=10):
 # Load dataset and extract color features
 def load_dataset_and_extract_colors(dataset_path, quality=10):
     image_paths = glob.glob(os.path.join(dataset_path, '**', '*.jpg'), recursive=True) + \
-                  glob.glob(os.path.join(dataset_path, '**', '*.png'), recursive=True)
+                  glob.glob(os.path.join(dataset_path, '**', '*.jpeg'), recursive=True)
     color_features = []
 
     with ThreadPoolExecutor() as executor:
