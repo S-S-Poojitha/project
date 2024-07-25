@@ -38,7 +38,7 @@ dataset_path = 'fashion_dataset'  # Use the path where you downloaded images
 dataset_images = load_dataset_and_extract_colors(dataset_path)
 
 # Function to find similar images based on color
-def find_similar_images(uploaded_image_color, dataset_images, top_n=5):
+def find_similar_images(uploaded_image_color, dataset_images, top_n=3):
     similarities = []
     for image_path, color in dataset_images:
         similarity = cosine_similarity([uploaded_image_color], [color])[0][0]
